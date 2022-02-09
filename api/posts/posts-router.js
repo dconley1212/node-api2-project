@@ -58,7 +58,7 @@ router.post("/", (req, res) => {
     });
 });
 
-router.put("/:id", (req, res) => {
+router.put("/:id", async (req, res) => {
   const { id } = req.params;
   const { title, contents } = req.body;
 
@@ -67,67 +67,68 @@ router.put("/:id", (req, res) => {
       .status(400)
       .json({ message: "Please provide title and contents for the post" });
   }
-  posts
-    .update(id, { title, contents })
-    .then((post) => {
-      if (!post) {
-        res
-          .status(404)
-          .json({ message: "The post with the specified ID does not exist" });
-      } else {
-        res.status(200).json(post);
-      }
-    })
-    .catch((err) => {
-      console.log(err);
+
+  const updatedPost = await posts.update(id, { title, contents });
+
+  try {
+    if (!updatedPost) {
       res
-        .status(500)
-        .json({ message: "The post information could not be modified" });
-    });
+        .status(404)
+        .json({ message: "The post with the specified ID does not exist" });
+    } else {
+      const postId = await posts.findById(id);
+      res.status(200).json(postId);
+    }
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: "The post information could not be modified" });
+  }
 });
 
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
-  posts
-    .remove(id)
-    .then((post) => {
-      if (!post) {
-        res
-          .status(404)
-          .json({ message: "The post with the specified ID does not exist" });
-      } else {
-        res.status(200).json(post);
-      }
-    })
-    .catch((err) => {
-      console.log(err);
+  const deletedPost = await posts.remove(id);
+
+  try {
+    if (!deletedPost) {
       res
-        .status(500)
-        .json({ message: "The comments information could not be retrieved" });
-    });
+        .status(404)
+        .json({ message: "The post with the specified ID does not exist" });
+    } else {
+      const postID = await posts.findById(id);
+
+      res.status(200).json(postID.id);
+    }
+  } catch (err) {
+    console.log(err);
+    res
+      .status(500)
+      .json({ message: "The comments information could not be retrieved" });
+  }
 });
 
-router.get("/:id/comments", (req, res) => {
+router.get("/:id/comments", async (req, res) => {
   const { id } = req.params;
 
-  posts
-    .findCommentById(id)
-    .then((post) => {
-      if (!post) {
-        res
-          .status(404)
-          .json({ message: "The post with the specified ID does not exist" });
-      } else {
-        res.status(200).json(post);
-      }
-    })
-    .catch((err) => {
-      console.log(err);
+  const postId = await posts.findCommentById(id);
+
+  try {
+    if (!postId) {
       res
-        .status(500)
-        .json({ message: "The comments information could not be retrieved" });
-    });
+        .status(404)
+        .json({ message: "The post with the specified ID does not exist" });
+    } else {
+      const postComment = await posts.findPostComments(postId);
+      res.status(200).json(postComment);
+    }
+  } catch (err) {
+    console.log(err);
+    res
+      .status(500)
+      .json({ message: "The comments information could not be retrieved" });
+  }
 });
 
 module.exports = router;
